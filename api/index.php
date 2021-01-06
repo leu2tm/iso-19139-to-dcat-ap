@@ -13,7 +13,7 @@
 
 // Loading the required libraries
 
-  require('/vendor/autoload.php');
+  require('./lib/composer/vendor/autoload.php');
 
 // Output schemas
 
@@ -79,16 +79,15 @@
   }
 
 // Setting the output schema
+  if($_SERVER['REQUEST_METHOD'] == 'POST') { 
 
-  if (isset($_GET['src'])) {
-
-    $xmluri = $_GET['src'];
+    $xmluri = $_POST['src'];
 
     $outputSchema = $defaultOutputSchema;
     $xsluri = $outputSchemas[$outputSchema]['xslt'];
-    if (isset($_GET['outputSchema'])) {
-      if (isset($outputSchemas[$_GET['outputSchema']])) {
-        $outputSchema = $_GET['outputSchema'];
+    if (isset($_POST['outputSchema'])) {
+      if (isset($outputSchemas[$_POST['outputSchema']])) {
+        $outputSchema = $_POST['outputSchema'];
         $xsluri = $outputSchemas[$outputSchema]['xslt'];
       }
       else {
@@ -102,6 +101,7 @@
     if (!$xml->load($xmluri)) {
       returnHttpError(404);
     }
+
 
 // Loading the XSLT to transform the source document into RDF/XML
 
@@ -126,12 +126,12 @@
 // Setting the output format
 
     $outputFormat = $defaultOutputFormat;
-    if (isset($_GET['outputFormat'])) {
-      if (!isset($outputFormats[$_GET['outputFormat']])) {
+    if (isset($_POST['outputFormat'])) {
+      if (!isset($outputFormats[$_POST['outputFormat']])) {
         returnHttpError(415);
       }
       else {
-        $outputFormat = $_GET['outputFormat'];
+        $outputFormat = $_POST['outputFormat'];
       }
     }
     else {
@@ -166,6 +166,7 @@
       "type" => $outputFormat,
       "title" => $outputSchemas[$outputSchema]["label"]
     );
+
 // The input resource
     $link[] = array(
       "href" => $xmluri,
@@ -212,10 +213,12 @@
     $graph = new \EasyRdf\Graph();
     $graph->parse($rdf);
 
+
 // Sending HTTP headers
 
     header("Content-type: " . $outputFormat);
-    header('Link: ' . join(', ', $linkHTTP));
+    // Issue with too big response header(?) and nginx
+    // header('Link: ' . join(', ', $linkHTTP));
 
 // Returning the resulting document
 
@@ -234,7 +237,11 @@
 // The URL of the repository
       $proc->setParameter('', 'home', $apiSrcRep);
 // All what needs to be added in the HEAD of the HTML+RDFa document
+
       $head .= join("\n", $linkHTML) . "\n";
+
+      echo json_encode(urlencode($head));
+      die();
       $proc->setParameter('', 'head', $head);
       echo $proc->transformToXML($xml);
       exit;
@@ -246,6 +253,7 @@
         echo json_encode(json_decode($graph->serialise($outputFormats[$outputFormat][1])), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
       }
       else {
+        die('ll');
         echo $graph->serialise($outputFormats[$outputFormat][1]);
       }
 // To be used when JSON-LD pretty-print will be supported in EasyRdf (see previous comment)      
@@ -268,7 +276,7 @@
     <nav>
     </nav>
     <section id="input-box">
-      <form id="api" action="." method="get">
+      <form id="api" action="." method="post">
         <h1>
           <label for="outputSchema">Output Schema : </label>
           <select id="outputSchema" name="outputSchema">

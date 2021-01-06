@@ -2,5 +2,9 @@ version: "3.8"
 services:
     web:
         build: .
+        # This can be uncommented if you want to edit code without building image.
+        volumes:
+            - ./index.php:/app/index.php
+            - ./css:/app/css
         ports:
             - "80:80"
